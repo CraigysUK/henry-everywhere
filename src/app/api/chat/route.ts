@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
-    const { message, agentName, agentInstructions, history } = await request.json()
+    const { message, agentName, agentInstructions, history, apiKey } = await request.json()
     
-    // Build system prompt
+    // Build system prompt with user's customizations
     const systemPrompt = agentName 
       ? `You are ${agentName}, a helpful AI assistant. ${agentInstructions}`
       : 'You are a helpful AI assistant.'
@@ -16,13 +16,12 @@ export async function POST(request: Request) {
       { role: 'user', content: message }
     ]
     
-    // Call OpenAI (user provides their own API key via UI, or use env)
-    const openaiKey = process.env.OPENAI_API_KEY
+    // Use user's API key from settings
+    const openaiKey = apiKey || process.env.OPENAI_API_KEY
     
     if (!openaiKey) {
-      // Demo response if no key
       return NextResponse.json({ 
-        response: "Demo mode: Please add your OpenAI API key to start chatting. You can enter it in your dashboard settings." 
+        response: "Please add your OpenAI API key in settings to start chatting." 
       })
     }
     
@@ -40,11 +39,18 @@ export async function POST(request: Request) {
     })
     
     const data = await response.json()
+    
+    if (data.error) {
+      return NextResponse.json({ 
+        response: `Error: ${data.error.message}` 
+      })
+    }
+    
     const reply = data.choices?.[0]?.message?.content || 'Sorry, I could not respond.'
     
     return NextResponse.json({ response: reply })
   } catch (error) {
     console.error(error)
-    return NextResponse.json({ response: 'Something went wrong.' }, { status: 500 })
+    return NextResponse.json({ response: 'Something went wrong. Please check your API key.' }, { status: 500 })
   }
 }
