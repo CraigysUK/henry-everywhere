@@ -1,12 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { UserButton, useUser, useClerk } from '@clerk/nextjs'
+import { UserButton, useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
 type Message = {
   role: 'user' | 'assistant'
   content: string
+}
+
+type UserProfile = {
+  name: string
+  business: string
+  goals: string
+  preferences: string
+  notes: string
 }
 
 export default function Dashboard() {
@@ -20,8 +28,16 @@ export default function Dashboard() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  
+  // User profile state
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+    name: '',
+    business: '',
+    goals: '',
+    preferences: '',
+    notes: ''
+  })
 
-  // Load user settings and messages on mount
   useEffect(() => {
     if (isLoaded && !user) {
       router.push('/')
@@ -43,24 +59,35 @@ export default function Dashboard() {
     if (savedInstructions) setAgentInstructions(savedInstructions)
     if (savedKey) setApiKey(savedKey)
     
-    // Load chat history for this user
+    // Load user profile
+    const savedProfile = localStorage.getItem('user_profile')
+    if (savedProfile) {
+      try {
+        setUserProfile(JSON.parse(savedProfile))
+      } catch (e) {}
+    }
+    
+    // Load chat history
     const userId = user.id
     const savedMessages = localStorage.getItem(`chat_history_${userId}`)
     if (savedMessages) {
       try {
         setMessages(JSON.parse(savedMessages))
-      } catch (e) {
-        console.error('Failed to load messages')
-      }
+      } catch (e) {}
     }
   }
 
-  // Save messages to localStorage whenever they change
   useEffect(() => {
     if (user && messages.length > 0) {
       localStorage.setItem(`chat_history_${user.id}`, JSON.stringify(messages))
     }
   }, [messages, user])
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('user_profile', JSON.stringify(userProfile))
+    }
+  }, [userProfile, user])
 
   const saveSettings = () => {
     localStorage.setItem('agent_name', agentName)
@@ -86,15 +113,28 @@ export default function Dashboard() {
     setIsLoading(true)
 
     try {
+      // Build comprehensive system prompt with user profile
+      const userInfo = `
+USER DETAILS:
+- Name: ${userProfile.name || 'Not set'}
+- Business: ${userProfile.business || 'Not set'}
+- Goals: ${userProfile.goals || 'Not set'}
+- Preferences: ${userProfile.preferences || 'Not set'}
+- Notes: ${userProfile.notes || 'Not set'}
+
+Remember these details about the user and refer to them in your responses!
+`
+      
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: input,
           agentName,
-          agentInstructions,
+          agentInstructions: agentInstructions + userInfo,
           history: messages,
-          apiKey
+          apiKey,
+          userProfile
         })
       })
       
@@ -120,68 +160,110 @@ export default function Dashboard() {
       <div className="container mx-auto p-6">
         <div className="grid md:grid-cols-3 gap-6">
           {/* Settings Panel */}
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="text-lg font-bold mb-4">⚙️ Your Agent</h2>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Agent Name
-              </label>
-              <input
-                type="text"
-                value={agentName}
-                onChange={(e) => setAgentName(e.target.value)}
-                placeholder="e.g., Dave's Helper"
-                className="w-full p-2 border rounded-lg"
-              />
+          <div className="bg-white p-6 rounded-xl shadow-sm space-y-4">
+            <div>
+              <h2 className="text-lg font-bold mb-4">⚙️ Your Agent</h2>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Agent Name</label>
+                <input
+                  type="text"
+                  value={agentName}
+                  onChange={(e) => setAgentName(e.target.value)}
+                  className="w-full p-2 border rounded-lg"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Instructions</label>
+                <textarea
+                  value={agentInstructions}
+                  onChange={(e) => setAgentInstructions(e.target.value)}
+                  rows={3}
+                  className="w-full p-2 border rounded-lg text-sm"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">🔑 OpenAI API Key</label>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="sk-..."
+                  className="w-full p-2 border rounded-lg"
+                />
+              </div>
+              
+              <button 
+                onClick={saveSettings}
+                className="w-full bg-purple-600 text-white py-2 rounded-lg font-medium hover:bg-purple-700"
+              >
+                {saved ? '✅ Saved!' : 'Save Settings'}
+              </button>
             </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Instructions
-              </label>
-              <textarea
-                value={agentInstructions}
-                onChange={(e) => setAgentInstructions(e.target.value)}
-                placeholder="Tell your agent about yourself, how to help..."
-                rows={4}
-                className="w-full p-2 border rounded-lg"
-              />
+
+            {/* User Profile - The AI learns about you */}
+            <div className="border-t pt-4">
+              <h2 className="text-lg font-bold mb-4">👤 About You (AI learns this)</h2>
+              
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Your Name</label>
+                  <input
+                    type="text"
+                    value={userProfile.name}
+                    onChange={(e) => setUserProfile({...userProfile, name: e.target.value})}
+                    placeholder="What should I call you?"
+                    className="w-full p-2 border rounded-lg text-sm"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Your Business</label>
+                  <input
+                    type="text"
+                    value={userProfile.business}
+                    onChange={(e) => setUserProfile({...userProfile, business: e.target.value})}
+                    placeholder="What do you do?"
+                    className="w-full p-2 border rounded-lg text-sm"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Your Goals</label>
+                  <textarea
+                    value={userProfile.goals}
+                    onChange={(e) => setUserProfile({...userProfile, goals: e.target.value})}
+                    placeholder="What are you working towards?"
+                    rows={2}
+                    className="w-full p-2 border rounded-lg text-sm"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">How you like to communicate</label>
+                  <textarea
+                    value={userProfile.preferences}
+                    onChange={(e) => setUserProfile({...userProfile, preferences: e.target.value})}
+                    placeholder="Formal? Casual? Direct?"
+                    rows={2}
+                    className="w-full p-2 border rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-2 p-2 bg-blue-50 rounded-lg text-xs text-blue-700">
+                💡 The AI remembers this info and uses it to personalize responses!
+              </div>
             </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                🔑 OpenAI API Key
-              </label>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-..."
-                className="w-full p-2 border rounded-lg"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Get free key from platform.openai.com
-              </p>
-            </div>
-            
-            <button 
-              onClick={saveSettings}
-              className="w-full bg-purple-600 text-white py-2 rounded-lg font-medium hover:bg-purple-700 mb-2"
-            >
-              {saved ? '✅ Saved!' : 'Save Settings'}
-            </button>
-            
+
             <button 
               onClick={clearChat}
               className="w-full bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300"
             >
               🗑️ Clear Chat History
             </button>
-            
-            <div className="mt-4 p-3 bg-yellow-50 rounded-lg text-sm">
-              💡 <strong>Tip:</strong> Tell your agent about your business, preferences, and how you like to communicate. Your chat history is saved automatically!
-            </div>
           </div>
 
           {/* Chat Panel */}
@@ -191,7 +273,6 @@ export default function Dashboard() {
               <span className="text-xs text-gray-500">{messages.length} messages</span>
             </div>
             
-            {/* Messages */}
             <div className="flex-1 p-4 overflow-y-auto space-y-4">
               {messages.length === 0 && (
                 <p className="text-gray-400 text-center">
@@ -217,7 +298,6 @@ export default function Dashboard() {
               )}
             </div>
             
-            {/* Input */}
             <div className="p-4 border-t">
               {!apiKey && (
                 <div className="mb-2 p-2 bg-yellow-100 text-yellow-800 rounded text-sm">
