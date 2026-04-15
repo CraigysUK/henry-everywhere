@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { UserButton, useUser, useClerk } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
-
 type Message = {
   role: 'user' | 'assistant'
   content: string
@@ -12,7 +11,6 @@ type Message = {
 
 export default function Dashboard() {
   const { user, isLoaded } = useUser()
-  
   const router = useRouter()
   
   const [agentName, setAgentName] = useState('My Assistant')
@@ -23,7 +21,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  // Load user settings on mount
+  // Load user settings and messages on mount
   useEffect(() => {
     if (isLoaded && !user) {
       router.push('/')
@@ -36,8 +34,7 @@ export default function Dashboard() {
   const loadSettings = async () => {
     if (!user) return
     
-    // Try to get settings from localStorage (for MVP)
-    // In production, this would come from Supabase
+    // Load settings
     const savedName = localStorage.getItem('agent_name')
     const savedInstructions = localStorage.getItem('agent_instructions')
     const savedKey = localStorage.getItem('api_key')
@@ -45,7 +42,25 @@ export default function Dashboard() {
     if (savedName) setAgentName(savedName)
     if (savedInstructions) setAgentInstructions(savedInstructions)
     if (savedKey) setApiKey(savedKey)
+    
+    // Load chat history for this user
+    const userId = user.id
+    const savedMessages = localStorage.getItem(`chat_history_${userId}`)
+    if (savedMessages) {
+      try {
+        setMessages(JSON.parse(savedMessages))
+      } catch (e) {
+        console.error('Failed to load messages')
+      }
+    }
   }
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (user && messages.length > 0) {
+      localStorage.setItem(`chat_history_${user.id}`, JSON.stringify(messages))
+    }
+  }, [messages, user])
 
   const saveSettings = () => {
     localStorage.setItem('agent_name', agentName)
@@ -53,6 +68,13 @@ export default function Dashboard() {
     localStorage.setItem('api_key', apiKey)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  const clearChat = () => {
+    if (user) {
+      localStorage.setItem(`chat_history_${user.id}`, JSON.stringify([]))
+    }
+    setMessages([])
   }
 
   const handleSend = async () => {
@@ -145,20 +167,28 @@ export default function Dashboard() {
             
             <button 
               onClick={saveSettings}
-              className="w-full bg-purple-600 text-white py-2 rounded-lg font-medium hover:bg-purple-700"
+              className="w-full bg-purple-600 text-white py-2 rounded-lg font-medium hover:bg-purple-700 mb-2"
             >
               {saved ? '✅ Saved!' : 'Save Settings'}
             </button>
             
+            <button 
+              onClick={clearChat}
+              className="w-full bg-gray-200 text-gray-700 py-2 rounded-lg font-medium hover:bg-gray-300"
+            >
+              🗑️ Clear Chat History
+            </button>
+            
             <div className="mt-4 p-3 bg-yellow-50 rounded-lg text-sm">
-              💡 <strong>Tip:</strong> Tell your agent about your business, preferences, and how you like to communicate.
+              💡 <strong>Tip:</strong> Tell your agent about your business, preferences, and how you like to communicate. Your chat history is saved automatically!
             </div>
           </div>
 
           {/* Chat Panel */}
           <div className="md:col-span-2 bg-white rounded-xl shadow-sm flex flex-col h-[600px]">
-            <div className="p-4 border-b">
+            <div className="p-4 border-b flex justify-between items-center">
               <h2 className="text-lg font-bold">💬 Chat with {agentName}</h2>
+              <span className="text-xs text-gray-500">{messages.length} messages</span>
             </div>
             
             {/* Messages */}
