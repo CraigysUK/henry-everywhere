@@ -12,7 +12,7 @@ type Message = {
 
 export default function Dashboard() {
   const { user, isLoaded } = useUser()
-  const { openUserSettings } = useClerk()
+  
   const router = useRouter()
   
   const [agentName, setAgentName] = useState('My Assistant')
