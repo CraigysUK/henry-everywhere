@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { UserButton, useUser, useClerk } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+
 
 type Message = {
   role: 'user' | 'assistant'
