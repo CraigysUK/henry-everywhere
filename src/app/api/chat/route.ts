@@ -15,7 +15,16 @@ export async function POST(request: Request) {
   try {
     const { message, agentName, agentInstructions, history, apiKey, userProfile } = await request.json()
     
-    const searchTriggers = ['search', 'find', 'look up', 'what is', 'who is', 'when', 'where', 'current', 'latest', '2024', '2025', '2026', 'news', 'weather']
+    const searchTriggers = [
+    'rate',
+    'exchange',
+    'current',
+    'price',
+    'cost',
+    'value',
+    'today',
+    'latest',
+    'current','search', 'find', 'look up', 'what is', 'who is', 'when', 'where', 'current', 'latest', '2024', '2025', '2026', 'news', 'weather']
     const needsSearch = searchTriggers.some(t => message.toLowerCase().includes(t))
     
     let searchResults = ''
