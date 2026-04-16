@@ -31,6 +31,11 @@ USER INFO:
 ` : ''
     
     const formatInstructions = `
+IMPORTANT - YOU HAVE WEB SEARCH CAPABILITY:
+- You CAN search the web for current information, exchange rates, news, weather, facts
+- When asked about current events, rates, or real-time data, you should search the web
+- Use your search ability to provide accurate, up-to-date information
+
 IMPORTANT FORMATTING RULES:
 - Use paragraphs to separate different ideas (leave a blank line between paragraphs)
 - Use bullet points (• or -) for lists
