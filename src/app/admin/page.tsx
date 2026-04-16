@@ -19,7 +19,6 @@ type UserData = {
 const MAIN_ADMIN_EMAIL = 'cjspartnersltd@outlook.com'
   
   // Check if current user is admin in dashboard
-  export const isAdminUser = (email: string) => email.toLowerCase() === MAIN_ADMIN_EMAIL.toLowerCase()
 const ADMIN_PASSWORD = 'Henry2026!'
 
 export default function AdminPanel() {
