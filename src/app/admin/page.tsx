@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { UserButton, useUser, authMiddleware } from '@clerk/nextjs'
+import { UserButton, useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
 type UserData = {
@@ -15,10 +15,8 @@ type UserData = {
   createdAt: string
 }
 
-// Admin emails - add your email here
-const ADMIN_EMAILS = [
-  'craig@example.com', // Replace with your admin email
-]
+const ADMIN_EMAIL = 'cjspartnersltd@outlook.com'
+const ADMIN_PASSWORD = 'Henry2026!' // Change this password
 
 export default function AdminPanel() {
   const { user, isLoaded, isSignedIn } = useUser()
@@ -26,6 +24,9 @@ export default function AdminPanel() {
   const [users, setUsers] = useState<UserData[]>([])
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [passwordEntered, setPasswordEntered] = useState(false)
+  const [passwordInput, setPasswordInput] = useState('')
+  const [passwordError, setPasswordError] = useState(false)
 
   useEffect(() => {
     if (isLoaded && !user) {
@@ -33,19 +34,23 @@ export default function AdminPanel() {
     }
     if (isLoaded && user) {
       const email = user.primaryEmailAddress?.emailAddress || ''
-      // Check if user is admin
-      const adminCheck = ADMIN_EMAILS.some(adminEmail => 
-        email.toLowerCase().includes(adminEmail.toLowerCase())
-      ) || email.includes('craig')
-      
-      if (!adminCheck) {
+      if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
         router.push('/dashboard')
         return
       }
       setIsAdmin(true)
-      loadUsers()
     }
   }, [isLoaded, user, router])
+
+  const checkPassword = () => {
+    if (passwordInput === ADMIN_PASSWORD) {
+      setPasswordEntered(true)
+      setPasswordError(false)
+      loadUsers()
+    } else {
+      setPasswordError(true)
+    }
+  }
 
   const loadUsers = async () => {
     try {
@@ -62,6 +67,32 @@ export default function AdminPanel() {
     return (
       <div className="min-h-screen bg-[#313338] text-gray-100 flex items-center justify-center">
         <span className="animate-pulse">Loading...</span>
+      </div>
+    )
+  }
+
+  if (!passwordEntered) {
+    return (
+      <div className="min-h-screen bg-[#313338] text-gray-100 flex items-center justify-center">
+        <div className="bg-[#2b2d31] p-8 rounded-lg max-w-sm w-full">
+          <h2 className="text-xl font-bold mb-4 text-center">🔐 Admin Access</h2>
+          <p className="text-gray-400 text-sm mb-4 text-center">Enter password to continue</p>
+          <input
+            type="password"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && checkPassword()}
+            placeholder="Password"
+            className="w-full p-3 bg-[#383a40] border-none rounded-lg text-gray-100 mb-3"
+          />
+          {passwordError && <p className="text-red-400 text-sm mb-3">Incorrect password</p>}
+          <button
+            onClick={checkPassword}
+            className="w-full bg-[#5865F2] text-white py-3 rounded-lg font-bold hover:bg-[#4752c4]"
+          >
+            Enter
+          </button>
+        </div>
       </div>
     )
   }
