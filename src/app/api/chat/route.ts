@@ -1,27 +1,21 @@
 import { NextResponse } from 'next/server'
 
-// Search function using Brave Search API
 async function webSearch(query: string) {
   try {
     const res = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}`, {
-      headers: {
-        'X-Subscription-Token': process.env.BRAVE_SEARCH_API_KEY || ''
-      }
+      headers: { 'X-Subscription-Token': process.env.BRAVE_SEARCH_API_KEY || '' }
     })
     const data = await res.json()
     const results = data.web?.results?.slice(0, 5) || []
     return results.map((r: any) => `${r.title}: ${r.url} - ${r.description}`).join('\n')
-  } catch (e) {
-    return 'Search failed'
-  }
+  } catch (e) { return 'Search failed' }
 }
 
 export async function POST(request: Request) {
   try {
-    const { message, agentName, agentInstructions, history, apiKey } = await request.json()
+    const { message, agentName, agentInstructions, history, apiKey, userProfile } = await request.json()
     
-    // Check if we need to search the web
-    const searchTriggers = ['search', 'find', 'look up', 'what is', 'who is', 'when', 'where', 'current', 'latest', '2024', '2025', '2026', 'news']
+    const searchTriggers = ['search', 'find', 'look up', 'what is', 'who is', 'when', 'where', 'current', 'latest', '2024', '2025', '2026', 'news', 'weather']
     const needsSearch = searchTriggers.some(t => message.toLowerCase().includes(t))
     
     let searchResults = ''
@@ -29,17 +23,29 @@ export async function POST(request: Request) {
       searchResults = await webSearch(message)
     }
     
-    // Build system prompt
-    const systemPrompt = agentName 
-      ? `You are ${agentName}, a helpful AI assistant. ${agentInstructions}
-      
-IMPORTANT: You can search the web for current information. When someone asks about recent events, news, or information that might have changed, use your knowledge or explain you can search the web. You have full browsing capabilities - you can search for information, find current data, and browse websites to get up-to-date information.
-
-${searchResults ? `Here are some search results that may help:\n${searchResults}` : ''}`
-      : `You are a helpful AI assistant. You have full browsing capabilities - you can search for information, find current data, and browse websites.
-${searchResults ? `Here are some search results that may help:\n${searchResults}` : ''}`
+    const userInfo = userProfile?.name ? `
+USER INFO:
+- Name: ${userProfile.name}
+- Business: ${userProfile.business || 'Not specified'}
+- Goals: ${userProfile.goals || 'Not specified'}
+` : ''
     
-    // Build messages
+    const formatInstructions = `
+IMPORTANT FORMATTING RULES:
+- Use paragraphs to separate different ideas (leave a blank line between paragraphs)
+- Use bullet points (• or -) for lists
+- Use numbered lists (1., 2., 3.) for sequential items
+- Use **bold** for important terms
+- Keep responses well-structured and easy to read
+- Never write in one long paragraph - ALWAYS format nicely!
+`
+    
+    const systemPrompt = agentName 
+      ? `You are ${agentName}. ${agentInstructions} ${userInfo} ${formatInstructions}
+${searchResults ? `SEARCH RESULTS:\n${searchResults}` : ''}`
+      : `You are a helpful AI assistant. ${formatInstructions}
+${searchResults ? `SEARCH RESULTS:\n${searchResults}` : ''}`
+    
     const messages = [
       { role: 'system', content: systemPrompt },
       ...history.map((m: any) => ({ role: m.role, content: m.content })),
@@ -49,9 +55,7 @@ ${searchResults ? `Here are some search results that may help:\n${searchResults}
     const openaiKey = apiKey || process.env.OPENAI_API_KEY
     
     if (!openaiKey) {
-      return NextResponse.json({ 
-        response: "Please add your OpenAI API key in settings to start chatting." 
-      })
+      return NextResponse.json({ response: "Please add your OpenAI API key in settings to start chatting." })
     }
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -70,9 +74,7 @@ ${searchResults ? `Here are some search results that may help:\n${searchResults}
     const data = await response.json()
     
     if (data.error) {
-      return NextResponse.json({ 
-        response: `Error: ${data.error.message}` 
-      })
+      return NextResponse.json({ response: `Error: ${data.error.message}` })
     }
     
     const reply = data.choices?.[0]?.message?.content || 'Sorry, I could not respond.'
@@ -80,6 +82,6 @@ ${searchResults ? `Here are some search results that may help:\n${searchResults}
     return NextResponse.json({ response: reply })
   } catch (error) {
     console.error(error)
-    return NextResponse.json({ response: 'Something went wrong. Please check your API key.' }, { status: 500 })
+    return NextResponse.json({ response: 'Something went wrong.' }, { status: 500 })
   }
 }
