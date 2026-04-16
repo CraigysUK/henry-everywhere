@@ -199,6 +199,7 @@ export default function Dashboard() {
         <button onClick={() => setActiveTab('chat')} className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${activeTab === 'chat' ? 'bg-[#5865F2]' : 'bg-[#313338] hover:bg-[#3f4147]'}`}>💬</button>
         <button onClick={() => setActiveTab('settings')} className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${activeTab === 'settings' ? 'bg-[#5865F2]' : 'bg-[#313338] hover:bg-[#3f4147]'}`}>⚙️</button>
         <button onClick={() => setActiveTab('profile')} className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${activeTab === 'profile' ? 'bg-[#5865F2]' : 'bg-[#313338] hover:bg-[#3f4147]'}`}>👤</button>
+        <a href="/admin" className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl bg-[#313338] hover:bg-[#3f4147]" title="Admin">👑</a>
         <button onClick={() => setActiveTab('subscription')} className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${activeTab === 'subscription' ? 'bg-[#5865F2]' : 'bg-[#313338] hover:bg-[#3f4147]'}`}>💳</button>
         <div className="mt-auto"><UserButton afterSignOutUrl="/" /></div>
       </div>
