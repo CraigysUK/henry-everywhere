@@ -6,8 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 
 type Message = { role: 'user' | 'assistant'; content: string }
 
-const FREE_MESSAGE_LIMIT = 50
-const FREE_MEMORY_LIMIT = 5 // Last 5 messages only for free users
+const FREE_MESSAGE_LIMIT = 20
+const FREE_MEMORY_LIMIT = 20 // Last 20 messages (same day only) for free users
 
 function formatMessage(content: string) {
   return content.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br/>')
@@ -68,6 +68,7 @@ export default function Dashboard() {
     // Reset counter if new day
     const today = new Date().toDateString()
     if (lastDate !== today) {
+      localStorage.setItem(`chat_history_` + user.id, JSON.stringify([]))
       localStorage.setItem('messages_today', '0')
       localStorage.setItem('messages_date', today)
       setMessagesUsedToday(0)
