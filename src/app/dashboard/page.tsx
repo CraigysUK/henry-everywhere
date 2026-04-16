@@ -83,7 +83,7 @@ export default function Dashboard() {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId: 'price_placeholder' })
+        body: JSON.stringify({ priceId: 'price_1TMlqYBjgaFNhkg24u6z3tfg' })
       })
       const data = await res.json()
       if (data.url) window.location.href = data.url
