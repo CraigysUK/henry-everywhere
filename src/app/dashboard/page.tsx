@@ -8,12 +8,12 @@ type Message = { role: 'user' | 'assistant'; content: string }
 
 const FREE_MESSAGE_LIMIT = 20
 const FREE_MEMORY_LIMIT = 20
+const ADMIN_EMAIL = 'cjspartnersltd@outlook.com'
 
 function formatMessage(content: string) {
   return content.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br/>')
 }
 
-// Save user data to database
 async function saveUserToDatabase(userData: any) {
   try {
     await fetch('/api/user-data', {
@@ -40,6 +40,7 @@ export default function Dashboard() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [messagesUsedToday, setMessagesUsedToday] = useState(0)
   const [showLimitModal, setShowLimitModal] = useState(false)
+  const [isAdminUser, setIsAdminUser] = useState(false)
   
   const [userProfile, setUserProfile] = useState({
     name: '', business: '', goals: '', preferences: '', notes: ''
@@ -51,11 +52,16 @@ export default function Dashboard() {
   const userEmail = user?.primaryEmailAddress?.emailAddress || ''
 
   useEffect(() => {
+    if (userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      setIsAdminUser(true)
+    }
+  }, [userEmail])
+
+  useEffect(() => {
     if (searchParams.get('success') === 'true') {
       setShowSuccess(true)
       setIsSubscribed(true)
       localStorage.setItem('is_subscribed', 'true')
-      // Save PRO user to database
       saveUserToDatabase({
         userId: user?.id,
         email: userEmail,
@@ -117,7 +123,6 @@ export default function Dashboard() {
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
     
-    // Save user to database
     saveUserToDatabase({
       userId: user?.id,
       email: userEmail,
@@ -199,8 +204,13 @@ export default function Dashboard() {
         <button onClick={() => setActiveTab('chat')} className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${activeTab === 'chat' ? 'bg-[#5865F2]' : 'bg-[#313338] hover:bg-[#3f4147]'}`}>💬</button>
         <button onClick={() => setActiveTab('settings')} className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${activeTab === 'settings' ? 'bg-[#5865F2]' : 'bg-[#313338] hover:bg-[#3f4147]'}`}>⚙️</button>
         <button onClick={() => setActiveTab('profile')} className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${activeTab === 'profile' ? 'bg-[#5865F2]' : 'bg-[#313338] hover:bg-[#3f4147]'}`}>👤</button>
-        <a href="/admin" className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl bg-[#313338] hover:bg-[#3f4147]" title="Admin">👑</a>
         <button onClick={() => setActiveTab('subscription')} className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${activeTab === 'subscription' ? 'bg-[#5865F2]' : 'bg-[#313338] hover:bg-[#3f4147]'}`}>💳</button>
+        
+        {/* Only show admin button for admin user */}
+        {isAdminUser && (
+          <a href="/admin" className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl bg-[#313338] hover:bg-[#3f4147]" title="Admin">👑</a>
+        )}
+        
         <div className="mt-auto"><UserButton afterSignOutUrl="/" /></div>
       </div>
 
