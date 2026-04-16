@@ -1,11 +1,19 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect } from 'react'
 import { UserButton, useUser } from '@clerk/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 type Message = { role: 'user' | 'assistant'; content: string }
+
+// Helper to format message content
+function formatMessage(content: string) {
+  // Convert newlines to line breaks and preserve formatting
+  return content
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br/>')
+}
 
 export default function Dashboard() {
   const { user, isLoaded } = useUser()
@@ -38,8 +46,6 @@ export default function Dashboard() {
   const loadSettings = () => {
     if (!user) return
     const savedName = localStorage.getItem('agent_name')
-    const savedInstructions = localStorage.getItem('agent_instructions')
-    const savedKey = localStorage.getItem('api_key')
     const savedProfile = localStorage.getItem('user_profile')
     const subscribed = localStorage.getItem('is_subscribed')
     
@@ -89,7 +95,6 @@ USER DETAILS:
 - Name: ${userProfile.name || 'Not set'}
 - Business: ${userProfile.business || 'Not set'}
 - Goals: ${userProfile.goals || 'Not set'}
-- Preferences: ${userProfile.preferences || 'Not set'}
 `
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -144,7 +149,6 @@ USER DETAILS:
       )}
 
       <div className="container mx-auto p-4 h-[calc(100vh-140px)]">
-        {/* Chat Panel */}
         <div className="bg-white rounded-xl shadow-sm flex flex-col h-full">
           <div className="p-4 border-b flex justify-between items-center">
             <h2 className="text-lg font-bold">💬 Chat</h2>
@@ -162,8 +166,22 @@ USER DETAILS:
               </div>
             )}
             {messages.map((msg, i) => (
-              <div key={i} className={`p-4 rounded-lg break-words ${msg.role === 'user' ? 'bg-blue-600 text-white ml-auto max-w-[80%]' : 'bg-gray-100 text-gray-800 mr-auto max-w-[80%]'}`}>
-                {msg.content}
+              <div 
+                key={i} 
+                className={`p-4 rounded-lg ${
+                  msg.role === 'user' 
+                    ? 'bg-blue-600 text-white ml-auto max-w-[80%]' 
+                    : 'bg-gray-100 text-gray-800 mr-auto max-w-[80%]'
+                }`}
+              >
+                {msg.role === 'user' ? (
+                  msg.content
+                ) : (
+                  <div 
+                    className="prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }}
+                  />
+                )}
               </div>
             ))}
             {isLoading && (
