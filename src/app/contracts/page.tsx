@@ -14,6 +14,7 @@ export default function ContractsPage() {
             <a href="#services" className="hover:text-amber-400 transition">Services</a>
             <a href="#experience" className="hover:text-amber-400 transition">Experience</a>
             <a href="#contact" className="hover:text-amber-400 transition">Contact</a>
+            <a href="/contracts-dashboard" className="text-amber-500 hover:text-amber-400">🤖 Try Contract AI Agent</a>
             <Link href="/" className="text-amber-500 hover:text-amber-400">← Back to AI</Link>
           </nav>
         </div>
